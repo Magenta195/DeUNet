@@ -118,10 +118,10 @@ def robust_test(
     model.eval()
     start_time = perf_counter()
     for i, batch in enumerate( tqdm( dataloader )):
-        # Training
         inputs: Tensor = batch[0].to(dev)
         labels: Tensor = batch[1].to(dev)
 
+        # adversarial_inputs = attack( model.base_model, inputs,  labels )
         adversarial_inputs = attack( model.base_model, inputs,  labels )
 
         outputs: Tensor = model.base_model( inputs )

@@ -1,6 +1,6 @@
 from typing import Tuple
 from torchvision import transforms
-from torchvision.datasets import CIFAR10, CIFAR100
+from torchvision.datasets import CIFAR10, CIFAR100, MNIST
 from torch.utils.data import Dataset, DataLoader
 
 def get_dataset(args):
@@ -8,6 +8,8 @@ def get_dataset(args):
         return cifar_10_dataset(args)
     elif '100' in args.dataset:
         return cifar_100_dataset(args)
+    elif 'mnist' in args.dataset:
+        return mnist_dataset(args)
 
 
 def cifar_10_dataset(args) -> Tuple[DataLoader, DataLoader]:
@@ -46,4 +48,19 @@ def cifar_100_dataset(args) -> Tuple[DataLoader, DataLoader]:
     trainloader = DataLoader( dataset = trainset, batch_size = args.batch, num_workers=6, shuffle=True)
     testloader = DataLoader( dataset = testset, batch_size = args.batch, num_workers=6, shuffle=True)
 
-    return trainset, testset
+    return trainloader, testloader
+
+def mnist_dataset(args) -> Tuple[DataLoader, DataLoader]:
+    train_transform = transforms.Compose([
+        transforms.ToTensor(),
+    ])
+    test_transform = transforms.Compose([
+        transforms.ToTensor()
+    ])
+
+    trainset = MNIST( root=args.dataset_path, train=True, transform=train_transform, download=True )
+    testset = MNIST( root=args.dataset_path, train=False, transform=test_transform, download=True )
+
+    trainloader = DataLoader( dataset = trainset, batch_size = args.batch, num_workers=6, shuffle=True)
+    testloader = DataLoader( dataset = testset, batch_size = args.batch, num_workers=6, shuffle=True)
+    return trainloader, testloader

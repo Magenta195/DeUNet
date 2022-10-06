@@ -24,31 +24,45 @@ if __name__ == '__main__' :
 
     model = None
     attack = None
-    if not args.adv_train :
-        model = Model(args).to(dev)
-    else :
+
+    if args.filter :
+        model = Model_With_Filter(args).to(dev)
+        model.model_load( isbase = True )
         attack = PGD(
                 device = dev,
                 eps = args.train_eps,
                 alpha = args.train_alpha,
                 iters = args.train_iter
                 )
-        if args.filter :
-            model = Model_With_Filter(args).to(dev)
-            model.model_load( isbase = True )
+        scope = 'minloss'
 
-        elif args.HGD :
-            model = Model_With_DUnet_Filter(args).to(dev)
-            model.model_load( isbase = True )       
-        
-        else :
-            model = Model(args).to(dev)
+    elif args.HGD :
+        model = Model_With_DUnet_Filter(args).to(dev)
+        model.model_load( isbase = True )
+        attack = PGD(
+                device = dev,
+                eps = args.train_eps,
+                alpha = args.train_alpha,
+                iters = args.train_iter
+                )
+        scope = 'minloss'    
+    
+    else :
+        model = Model(args).to(dev)
+        if args.adv_train :
+            attack = PGD(
+                    device = dev,
+                    eps = args.train_eps,
+                    alpha = args.train_alpha,
+                    iters = args.train_iter
+                    )
+        scope = 'maxacc'
 
     recoder = Recoder(
         args = args,
         model = model,
         is_training = True,
-        scope = 'maxacc' if not args.adv_train else 'minloss'
+        scope = scope
     )
 
     for epoch in range( args.epochs ):

@@ -6,16 +6,30 @@ import os
 from torch import Tensor
 
 from ._resnet import resnet_models
+from ._simple_model import CNN
 from ._denosing_filter import unet_denoising, dunet
+from utils import get_cfg
+
+def get_base_models(
+    model_name : str,
+    num_cls : int,
+) -> nn.Module :
+    if 'resnet' in model_name :
+        return resnet_models(model_name, num_cls)
+    else :
+        return CNN(num_cls)
 
 class Model(nn.Module) :
     def __init__(self, args) :
         super().__init__()
-        self.base_model = resnet_models(args.model, args.cls)
+        self.cfg = get_cfg(args)
+        self.base_model = get_base_models(args.model, args.cls)
         self.save_path = args.save_path
         self.base_load_path = args.base_load_path
+
         self.fname = args.fname
         self.isfiltered = False
+        self.device = torch.device( f'cuda:{args.device}' )
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = optim.SGD(
@@ -46,7 +60,7 @@ class Model(nn.Module) :
 
     def model_load(self, **kwarg):
         LOAD_PATH = os.path.join(self.base_load_path, self.fname)
-        self.base_model.load_state_dict(torch.load(LOAD_PATH))
+        self.base_model.load_state_dict(torch.load(LOAD_PATH, map_location=self.device))
 
     def is_filtered(self) :
         return self.isfiltered
@@ -54,7 +68,11 @@ class Model(nn.Module) :
 class Model_With_Filter(Model):
     def __init__(self, args):
         super().__init__(args)
-        self.filter_model = unet_denoising()
+        self.filter_model = unet_denoising(
+            in_channels = self.cfg.in_channels,
+            out_channels = self.cfg.out_channels,
+            depth = self.cfg.depth
+        )
         self.load_path = args.load_path
 
         self.criterion = _CE_simil_loss(beta = args.beta)
@@ -109,7 +127,7 @@ class Model_With_Filter(Model):
 
         else :
             LOAD_PATH = os.path.join(self.load_path, self.fname)
-            self.filter_model.load_state_dict(torch.load(LOAD_PATH))
+            self.filter_model.load_state_dict(torch.load(LOAD_PATH, map_location=self.device))
 
     def is_filtered(self):
         return self.isfiltered
@@ -117,7 +135,11 @@ class Model_With_Filter(Model):
 class Model_With_DUnet_Filter(Model):
     def __init__(self, args):
         super().__init__(args)
-        self.filter_model = dunet()
+        self.filter_model = dunet(
+            in_channels = self.cfg.in_channels,
+            out_channels = self.cfg.out_channels,
+            depth = self.cfg.depth
+        )
         self.load_path = args.load_path
         self.criterion = nn.L1Loss(reduction = 'mean')
         self.optimizer = optim.SGD(
@@ -166,7 +188,7 @@ class Model_With_DUnet_Filter(Model):
             
         else :
             LOAD_PATH = os.path.join(self.load_path, self.fname)
-            self.filter_model.load_state_dict(torch.load(LOAD_PATH))
+            self.filter_model.load_state_dict(torch.load(LOAD_PATH, map_location=self.device))
 
     def is_filtered(self):
         return self.isfiltered
@@ -191,11 +213,11 @@ class _CE_simil_loss(nn.CrossEntropyLoss):
     ) -> Tensor:
 
         # ce_loss = super().forward(filtered_outputs, target)
-        l1_loss = self.l1loss(inputs, filtered_inputs)
+        # l1_loss = self.l1loss(inputs, filtered_inputs)
         # total_loss = self.beta * l1_loss + ce_loss
         l1_feature_loss = self.l1loss(filtered_outputs, target)
-        # total_loss = self.beta*l1_loss + l1_feature_loss
         total_loss = l1_feature_loss
+        # total_loss = l1_loss + l1_feature_loss
 
         if self.reduction == 'mean' :
             return torch.mean(total_loss)

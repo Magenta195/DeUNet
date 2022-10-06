@@ -73,6 +73,12 @@ def wandb_config(
     tags.append( f'batch size {batch_size}')
     tags.append( f'{name_optim}')
     tags.append( f'{name_sched}')
+    if args.filter :
+        tags.append( f'SADUNet')
+    if args.HGD :
+        tags.append( f'HGD')
+    if args.adv_train :
+        tags.append( f'AT')
 
     env_config["Name"] = name
     env_config["Random_seed"] = args.seed

@@ -20,7 +20,7 @@ def _conv_block(in_channels, out_channels):
 
 
 class _denoising_block(nn.Module): ### mean filter
-    def __init__(self, in_channels, out_channels, head_size = 4, att = True):
+    def __init__(self, in_channels, out_channels, head_size = 1, att = True):
         super(_denoising_block, self).__init__()
         self.isattention = att
         self.head_size = head_size
@@ -62,7 +62,7 @@ class _denoising_block(nn.Module): ### mean filter
     def forward(self, x):
         out = self.DenoisingBlock(x)
         out = self.conv1x1(out)
-        out = x + out
+        out = x * out
 
         return out
 
@@ -186,8 +186,8 @@ class DUNet(nn.Module):
         return x
 
 
-def unet_denoising():
-    return Denoising_UNet(in_channels=3, out_channels=3, depth=4, cf=6)
+def unet_denoising(in_channels, out_channels, depth):
+    return Denoising_UNet(in_channels=in_channels, out_channels=out_channels, depth=depth, cf=6)
 
-def dunet():
-    return DUNet(in_channels=3, out_channels=3, depth=4, cf=6)
+def dunet(in_channels, out_channels, depth):
+    return DUNet(in_channels=in_channels, out_channels=out_channels, depth=depth, cf=6)
