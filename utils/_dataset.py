@@ -1,7 +1,9 @@
 from typing import Tuple
 from torchvision import transforms
-from torchvision.datasets import CIFAR10, CIFAR100, MNIST
-from torch.utils.data import Dataset, DataLoader
+from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
+
+import os
 
 def get_dataset(args):
     if '10' in args.dataset:
@@ -10,6 +12,8 @@ def get_dataset(args):
         return cifar_100_dataset(args)
     elif 'mnist' in args.dataset:
         return mnist_dataset(args)
+    elif 'medical' in args.dataset :
+        return medical_dataset(args)
 
 
 def cifar_10_dataset(args) -> Tuple[DataLoader, DataLoader]:
@@ -63,4 +67,33 @@ def mnist_dataset(args) -> Tuple[DataLoader, DataLoader]:
 
     trainloader = DataLoader( dataset = trainset, batch_size = args.batch, num_workers=6, shuffle=True)
     testloader = DataLoader( dataset = testset, batch_size = args.batch, num_workers=6, shuffle=True)
+    return trainloader, testloader
+
+def medical_dataset(args) -> Tuple[DataLoader, DataLoader]:
+    DATA_PATH = os.path.join(args.dataset_path, "chest_xray")
+    TRAIN_PATH = os.path.join(DATA_PATH, "train")
+    VAL_PATH = os.path.join(DATA_PATH, "val")
+    TEST_PATH = os.path.join(DATA_PATH, "test")
+
+    train_val_transform = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.RandomRotation(20),
+        transforms.CenterCrop((224, 224)),
+        transforms.ToTensor()
+    ])
+
+    test_transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor()
+    ])
+
+    trainset = ImageFolder( root = TRAIN_PATH, transform = train_val_transform)
+    valset = ImageFolder( root = VAL_PATH, transform = train_val_transform)
+    testset = ImageFolder( root = TEST_PATH, transform = test_transform)
+
+    trainset = ConcatDataset([trainset, valset])
+
+    trainloader = DataLoader( dataset = trainset, batch_size = args.batch, num_workers=6, shuffle=True)
+    testloader = DataLoader( dataset = testset, batch_size = args.batch, num_workers=6, shuffle=True)
+
     return trainloader, testloader

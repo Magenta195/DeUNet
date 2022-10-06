@@ -1,7 +1,8 @@
 from ._arguments import get_arguments
 from ._dataset import (
     cifar_10_dataset, 
-    cifar_100_dataset, 
+    cifar_100_dataset,
+    medical_dataset,
     get_dataset
 )
 from ._cfg import get_cfg
@@ -17,6 +18,7 @@ __all__ = [
     get_cfg,
     cifar_100_dataset,
     cifar_10_dataset,
+    medical_dataset,
     get_dataset,
     fix_rand_seed,
     Recoder,

@@ -6,6 +6,8 @@ def get_cfg(args):
         return CIFARconfig
     elif 'mnist' in args.dataset :
         return MNISTconfig
+    elif 'medical' in args.dataset :
+        return MEDICALconfig
 
 
 class CIFARconfig:
@@ -27,3 +29,13 @@ class MNISTconfig:
     in_channels = 1
     out_channels = 1
     depth = 3
+
+class MEDICALconfig:
+    method_and_iter = [ ( FGSM, 0 ), ( PGD, 7 ), ( PGD, 20 ) ]
+    eps_list = list(range(1, 20))
+    eps_div = 255
+    alpha_amp = 1/4
+
+    in_channels = 3
+    out_channels = 3
+    depth = 5
