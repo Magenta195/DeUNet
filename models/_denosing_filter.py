@@ -20,7 +20,7 @@ def _conv_block(in_channels, out_channels):
 
 
 class _denoising_block(nn.Module): ### mean filter
-    def __init__(self, in_channels, out_channels, head_size = 1, att = True):
+    def __init__(self, in_channels, out_channels, head_size = 16, att = True):
         super(_denoising_block, self).__init__()
         self.isattention = att
         self.head_size = head_size
@@ -50,7 +50,7 @@ class _denoising_block(nn.Module): ### mean filter
             q_out = self.query_conv(x).reshape(B,C,H*W) ### B x C x H x W -> B x C x HW
             q_out = self.multihead_transpose(q_out, H*W).transpose(-1, -2) ### B x h x HW//h x C
             k_out = self.key_conv(x).reshape(B,C,H*W) ### B x C x H x W => B x C x HW
-            k_out = self.multihead_transpose(k_out, H*W) 
+            k_out = self.multihead_transpose(k_out, H*W)
             attention = self.softmax(torch.matmul(q_out, k_out) / math.sqrt(self.head_size))### B x h x HW//h x HW//h
 
             v_out = self.value_conv(x).reshape(B,C,H*W)
@@ -120,7 +120,7 @@ class Denoising_UNet(nn.Module):
         )
         self.denoising = nn.ModuleList(
             [
-                _denoising_block(in_channels=(2 ** (cf + i)), out_channels=(2 ** (cf + i)))
+                _denoising_block(in_channels=(2 ** (cf + i)), out_channels=(2 ** (cf + i)), head_size = (2 ** (depth - i - 1)))
                 for i in reversed(range(depth - 1))
             ]
         )

@@ -27,21 +27,25 @@ def _train(
 
     model.train()
     start_time = perf_counter()
+    mid_time = 0
     model.optimizer.zero_grad()
     for i, batch in enumerate( tqdm( dataloader, leave=True) ):
         # Training
         inputs: Tensor = batch[0].to(dev)
         labels: Tensor = batch[1].to(dev)
         
+        tmp_time = perf_counter()
         orig_inputs = inputs.data
         if attack is not None:
             inputs = attack( model.base_model, inputs,  labels )
-        
+        mid_time += perf_counter() - tmp_time
+
         outputs, loss = model.cal_loss(
             orig_inputs = orig_inputs,
             inputs = inputs,
             labels = labels
         )
+        
 
         loss.backward()
         model.optimizer.step()
@@ -55,7 +59,11 @@ def _train(
         print( f"[{cur_epoch+1}/{total_epoch}][{i+1}/{len(dataloader)}]", end='\r' )
 
     end_time = perf_counter()
+
     training_time = end_time - start_time
+    if model.is_filtered() : 
+        training_time -= mid_time
+
     train_loss /= total_size
     train_acc /= total_size
     return train_loss, train_acc, training_time

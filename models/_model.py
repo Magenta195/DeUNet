@@ -6,6 +6,7 @@ import os
 from torch import Tensor
 
 from ._resnet import resnet_models
+from ._effinet import efficientnet_models
 from ._simple_model import CNN
 from ._denosing_filter import unet_denoising, dunet
 from utils import get_cfg
@@ -16,8 +17,10 @@ def get_base_models(
 ) -> nn.Module :
     if 'resnet' in model_name :
         return resnet_models(model_name, num_cls)
-    else :
+    elif 'CNN' in model_name :
         return CNN(num_cls)
+    else :
+        return efficientnet_models(num_cls)
 
 class Model(nn.Module) :
     def __init__(self, args) :

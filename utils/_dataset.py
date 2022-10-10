@@ -70,20 +70,20 @@ def mnist_dataset(args) -> Tuple[DataLoader, DataLoader]:
     return trainloader, testloader
 
 def medical_dataset(args) -> Tuple[DataLoader, DataLoader]:
-    DATA_PATH = os.path.join(args.dataset_path, "chest_xray")
+    DATA_PATH = os.path.join(args.dataset_path, "OCT2017")
     TRAIN_PATH = os.path.join(DATA_PATH, "train")
     VAL_PATH = os.path.join(DATA_PATH, "val")
     TEST_PATH = os.path.join(DATA_PATH, "test")
 
     train_val_transform = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((160, 160)),
         transforms.RandomRotation(20),
-        transforms.CenterCrop((224, 224)),
+        transforms.CenterCrop((128, 128)),
         transforms.ToTensor()
     ])
 
     test_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((128, 128)),
         transforms.ToTensor()
     ])
 
@@ -91,7 +91,28 @@ def medical_dataset(args) -> Tuple[DataLoader, DataLoader]:
     valset = ImageFolder( root = VAL_PATH, transform = train_val_transform)
     testset = ImageFolder( root = TEST_PATH, transform = test_transform)
 
-    trainset = ConcatDataset([trainset, valset])
+    testset = ConcatDataset([valset, testset])
+
+    trainloader = DataLoader( dataset = trainset, batch_size = args.batch, num_workers=6, shuffle=True)
+    testloader = DataLoader( dataset = testset, batch_size = args.batch, num_workers=6, shuffle=True)
+
+    return trainloader, testloader
+
+def syntetic_medical_dataset(args) -> Tuple[DataLoader, DataLoader]:
+    DATA_PATH = os.path.join(args.dataset_path, "syntetic_medical")
+    TRAIN_PATH = os.path.join(DATA_PATH, "train")
+    TEST_PATH = os.path.join(DATA_PATH, "test")
+
+    train_transform = transforms.Compose([
+        transforms.ToTensor()
+    ])
+
+    test_transform = transforms.Compose([
+        transforms.ToTensor()
+    ])
+
+    trainset = ImageFolder( root = TRAIN_PATH, transform = train_transform)
+    testset = ImageFolder( root = TEST_PATH, transform = test_transform)
 
     trainloader = DataLoader( dataset = trainset, batch_size = args.batch, num_workers=6, shuffle=True)
     testloader = DataLoader( dataset = testset, batch_size = args.batch, num_workers=6, shuffle=True)
