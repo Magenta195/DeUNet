@@ -120,7 +120,7 @@ class Denoising_UNet(nn.Module):
         )
         self.denoising = nn.ModuleList(
             [
-                _denoising_block(in_channels=(2 ** (cf + i)), out_channels=(2 ** (cf + i)), head_size = (2 ** (depth - i - 1)))
+                _denoising_block(in_channels=(2 ** (cf + i)), out_channels=(2 ** (cf + i)), head_size = (2 ** (depth - i)))
                 for i in reversed(range(depth - 1))
             ]
         )

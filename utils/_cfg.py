@@ -6,8 +6,9 @@ def get_cfg(args):
         return CIFARconfig
     elif 'mnist' in args.dataset :
         return MNISTconfig
-    elif 'medical' in args.dataset :
+    else :
         return MEDICALconfig
+
 
 
 class CIFARconfig:

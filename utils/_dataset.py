@@ -1,8 +1,10 @@
 from typing import Tuple
 from torchvision import transforms
-from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder
+from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder, DatasetFolder
 from torch.utils.data import Dataset, DataLoader, ConcatDataset
 
+import numpy as np
+import torch
 import os
 
 def get_dataset(args):
@@ -12,6 +14,8 @@ def get_dataset(args):
         return cifar_100_dataset(args)
     elif 'mnist' in args.dataset:
         return mnist_dataset(args)
+    elif 'synthetic' in args.dataset :
+        return syntetic_medical_dataset(args)
     elif 'medical' in args.dataset :
         return medical_dataset(args)
 
@@ -77,7 +81,6 @@ def medical_dataset(args) -> Tuple[DataLoader, DataLoader]:
 
     train_val_transform = transforms.Compose([
         transforms.Resize((160, 160)),
-        transforms.RandomRotation(20),
         transforms.CenterCrop((128, 128)),
         transforms.ToTensor()
     ])
@@ -99,20 +102,24 @@ def medical_dataset(args) -> Tuple[DataLoader, DataLoader]:
     return trainloader, testloader
 
 def syntetic_medical_dataset(args) -> Tuple[DataLoader, DataLoader]:
-    DATA_PATH = os.path.join(args.dataset_path, "syntetic_medical")
+    def npy_loader(path):
+        sample = torch.from_numpy(np.load(path))
+        return sample
+
+    DATA_PATH = os.path.join(args.dataset_path, "synthetic_medical")
     TRAIN_PATH = os.path.join(DATA_PATH, "train")
     TEST_PATH = os.path.join(DATA_PATH, "test")
 
-    train_transform = transforms.Compose([
-        transforms.ToTensor()
-    ])
-
-    test_transform = transforms.Compose([
-        transforms.ToTensor()
-    ])
-
-    trainset = ImageFolder( root = TRAIN_PATH, transform = train_transform)
-    testset = ImageFolder( root = TEST_PATH, transform = test_transform)
+    trainset = DatasetFolder(
+        root = TRAIN_PATH,
+        loader = npy_loader,
+        extensions = ['.npy']
+    )
+    testset = DatasetFolder(
+        root = TEST_PATH,
+        loader = npy_loader,
+        extensions = ['.npy']
+    )
 
     trainloader = DataLoader( dataset = trainset, batch_size = args.batch, num_workers=6, shuffle=True)
     testloader = DataLoader( dataset = testset, batch_size = args.batch, num_workers=6, shuffle=True)

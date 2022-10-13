@@ -73,7 +73,8 @@ if __name__ == '__main__' :
             model = model,
             trainloader = trainloader,
             testloader = testloader,
-            dev = dev
+            dev = dev,
+            dataset_name = args.dataset
         )
 
         recoder.update(

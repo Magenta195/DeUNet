@@ -18,9 +18,10 @@ from models import (
 from collections import defaultdict
 from tqdm import tqdm
 import os 
+import torch
+import numpy as np
 
-
-DATASET_RESULT_PATH = './data/syntetic_medical'
+DATASET_RESULT_PATH = './data/synthetic_medical'
 TRAIN_RESULT_PATH = os.path.join(DATASET_RESULT_PATH, 'train')
 TEST_RESULT_PATH = os.path.join(DATASET_RESULT_PATH, 'test')
 
@@ -37,11 +38,11 @@ if __name__ == '__main__' :
     os.makedirs(DATASET_RESULT_PATH, exist_ok=True)
     os.makedirs(TRAIN_RESULT_PATH, exist_ok=True)
     os.makedirs(TEST_RESULT_PATH, exist_ok=True)
-    for i in range(1, args.cls+1) :
+    for i in range(args.cls) :
         os.makedirs(os.path.join(TRAIN_RESULT_PATH, str(i)), exist_ok=True)
         os.makedirs(os.path.join(TEST_RESULT_PATH, str(i)), exist_ok=True)
 
-    for method, iters, eps in [(FGSM, 1, 16/255), (PGD, 20, 1/255), (PGD, 20, 16/255)] :
+    for method, iters, eps in [(FGSM, 1, 16/255), (PGD, 20, 1/255), (PGD, 20, 8/255), (PGD, 20, 16/255)] :
         alpha = eps / 4
         attack = method(
             device = dev,
@@ -50,7 +51,7 @@ if __name__ == '__main__' :
             iter = iters
         )
         
-        for dset_name, dataloader in [ (TRAIN_RESULT_PATH, trainloader), (TEST_RESULT_PATH, testloader) ]:
+        for dset_result_path, dataloader in [ (TRAIN_RESULT_PATH, trainloader), (TEST_RESULT_PATH, testloader) ]:
 
             for i, batch in enumerate( tqdm( dataloader, leave=True) ):
                 inputs: Tensor = batch[0].to(dev)
@@ -59,10 +60,12 @@ if __name__ == '__main__' :
                 orig_inputs = inputs.data
                 inputs = attack( model.base_model, inputs,  labels )
                 
-                for input, label in zip(inputs, labels) :
-                    DATA_PATH = os.path.join(dset_name, dset_idx[label.item])
-                    save_image(input, DATA_PATH)   
-                    dset_idx[label.item] += 1
+                for orig_input, input, label in zip(orig_inputs, inputs, labels) :
+                    _final_input = torch.cat((orig_input, input), 1)
+                    DATA_PATH = os.path.join(dset_result_path, str(label.item()), str(dset_idx[label.item()]))
+                    final_input = _final_input.cpu().numpy()
+                    np.save(DATA_PATH, final_input) 
+                    dset_idx[label.item()] += 1
 
     print(dset_idx)
 

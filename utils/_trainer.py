@@ -68,6 +68,58 @@ def _train(
     train_acc /= total_size
     return train_loss, train_acc, training_time
 
+def _train_medical_filtered(
+    cur_epoch: int,
+    total_epoch: int,
+    model: Module,
+    attack : None,
+    dataloader: DataLoader,
+    dev: device,
+) -> Tuple[float, float, float]:
+    train_loss = 0
+    train_acc = 0
+    total_size = 0
+
+    model.train()
+    start_time = perf_counter()
+    mid_time = 0
+    model.optimizer.zero_grad()
+    for i, batch in enumerate( tqdm( dataloader, leave=True) ):
+        # Training
+        inputs: Tensor = batch[0].to(dev)
+        labels: Tensor = batch[1].to(dev)
+
+        orig_inputs, inputs = inputs.chunk( 2, dim = -2 )
+
+        outputs, loss = model.cal_loss(
+            orig_inputs = orig_inputs,
+            inputs = inputs,
+            labels = labels
+        )
+        
+        loss.backward()
+        model.optimizer.step()
+        model.optimizer.zero_grad()
+
+        # Obtain the total accuracy and loss (top-1)
+        _, preds = torch.max(outputs.data, 1)
+        train_loss += loss.item()
+        train_acc += torch.sum( preds == labels.data ).item()
+        total_size += labels.size(0)
+        print( f"[{cur_epoch+1}/{total_epoch}][{i+1}/{len(dataloader)}]", end='\r' )
+
+    end_time = perf_counter()
+
+    training_time = end_time - start_time
+    if model.is_filtered() : 
+        training_time -= mid_time
+
+    train_loss /= total_size
+    train_acc /= total_size
+    return train_loss, train_acc, training_time
+
+
+
 def _validation(
     model: Module,
     dataloader: DataLoader,
@@ -86,6 +138,41 @@ def _validation(
             labels: Tensor = batch[1].to(dev)
 
             orig_inputs = inputs.data
+            outputs, loss = model.cal_loss(
+                orig_inputs = orig_inputs,
+                inputs = inputs,
+                labels = labels
+            )
+            # Obtain the total accuracy and loss (top-1)
+            _, preds = torch.max(outputs.data, 1)
+            val_loss += loss.item()
+            val_acc += torch.sum( preds == labels.data ).item()
+            total_size += labels.size(0)
+
+    end_time = perf_counter()
+    val_time = end_time - start_time
+    val_loss /= total_size
+    val_acc /= total_size
+    return val_loss, val_acc, val_time
+
+def _validation_medical_filtered(
+    model: Module,
+    dataloader: DataLoader,
+    dev: device,
+) -> Tuple[float, float, float]:
+    val_loss = 0
+    val_acc = 0
+    total_size = 0
+
+    model.eval()
+    start_time = perf_counter()
+    with torch.no_grad():
+        for i, batch in enumerate( tqdm( dataloader, leave=True ) ):
+            # Training
+            inputs: Tensor = batch[0].to(dev)
+            labels: Tensor = batch[1].to(dev)
+
+            orig_inputs, inputs = inputs.chunk( 2, dim = -2 )
             outputs, loss = model.cal_loss(
                 orig_inputs = orig_inputs,
                 inputs = inputs,
@@ -175,9 +262,15 @@ def train_one_epoch(
     trainloader: DataLoader,
     testloader: DataLoader, 
     dev: device,
+    dataset_name : str
 ) -> Tuple[float, float, float, float, float]:
 
-    train_loss, train_acc, train_time = _train(
+    if dataset_name == 'synthetic' and model.is_filtered() :
+        train_func, val_func = _train_medical_filtered, _validation_medical_filtered
+    else :
+        train_func, val_func = _train, _validation
+
+    train_loss, train_acc, train_time = train_func(
         cur_epoch,
         total_epoch,
         model,
@@ -186,7 +279,7 @@ def train_one_epoch(
         dev,
     )
     
-    val_loss, val_acc, val_time = _validation(
+    val_loss, val_acc, val_time = val_func(
         model,
         testloader,
         dev 

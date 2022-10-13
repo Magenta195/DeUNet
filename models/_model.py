@@ -35,10 +35,9 @@ class Model(nn.Module) :
         self.device = torch.device( f'cuda:{args.device}' )
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = optim.SGD(
+        self.optimizer = optim.Adam(
             self.base_model.parameters(),
             lr=args.lr,
-            momentum=0.9,
             weight_decay=0.0001
         )
         self.scheduler = optim.lr_scheduler.MultiStepLR(
@@ -79,10 +78,9 @@ class Model_With_Filter(Model):
         self.load_path = args.load_path
 
         self.criterion = _CE_simil_loss(beta = args.beta)
-        self.optimizer = optim.SGD(
+        self.optimizer = optim.Adam(
             self.filter_model.parameters(),
             lr=args.lr,
-            momentum=0.9,
             weight_decay=0.0001
         )
         self.scheduler = optim.lr_scheduler.MultiStepLR(
@@ -145,10 +143,9 @@ class Model_With_DUnet_Filter(Model):
         )
         self.load_path = args.load_path
         self.criterion = nn.L1Loss(reduction = 'mean')
-        self.optimizer = optim.SGD(
+        self.optimizer = optim.Adam(
             self.filter_model.parameters(),
             lr=args.lr,
-            momentum=0.9,
             weight_decay=0.0001
         )
         self.scheduler = optim.lr_scheduler.MultiStepLR(
